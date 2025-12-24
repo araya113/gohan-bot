@@ -5,6 +5,7 @@ import { getToken, loadMealQuestionConfig, loadMySQLConfig } from "./config.js";
 import { initializeMySQL } from "./mysql.js";
 import { handleRunaCommand } from "./commands/runa.js";
 import { handleHistoryCommand } from "./commands/history.js";
+import { handleNutritionCommand } from "./commands/nutrition.js";
 import {
   setupMealQuestionSchedule,
   handleMealReply,
@@ -60,6 +61,12 @@ client.on("messageCreate", async (message: Message) => {
   // ご飯履歴コマンドの処理
   if (content === "!history") {
     await handleHistoryCommand(message);
+    return;
+  }
+
+  // 栄養素分析コマンドの処理
+  if (content === "!nutrition") {
+    await handleNutritionCommand(message);
     return;
   }
 

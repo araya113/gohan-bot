@@ -121,3 +121,10 @@ export function loadMySQLConfig(): MySQLConfig | null {
     database,
   };
 }
+
+/**
+ * OpenAI APIキーを取得
+ */
+export function getOpenAIApiKey(): string | null {
+  return getEnv("OPENAI_API_KEY");
+}
