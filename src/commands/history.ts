@@ -11,9 +11,7 @@ interface GohanHistoryRow extends RowDataPacket {
  * !history コマンドの処理
  * 実行したユーザーのご飯履歴を gOHAN_historys から取得して表示する
  */
-export async function handleHistoryCommand(
-  message: Message
-): Promise<void> {
+export async function handleHistoryCommand(message: Message): Promise<void> {
   try {
     // 入力したユーザーのIDを取得
     if (!message.author) {
@@ -35,10 +33,30 @@ export async function handleHistoryCommand(
     }
 
     const lines = rows.map((row) => {
-      const date =
+      const dateObj =
         row.create_at instanceof Date
-          ? row.create_at.toISOString().replace("T", " ").slice(0, 19)
-          : String(row.create_at);
+          ? row.create_at
+          : new Date(String(row.create_at));
+      // 日本時間（JST）に変換して表示
+      const parts = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Tokyo",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false,
+      }).formatToParts(dateObj);
+
+      const year = parts.find((p) => p.type === "year")?.value ?? "";
+      const month = parts.find((p) => p.type === "month")?.value ?? "";
+      const day = parts.find((p) => p.type === "day")?.value ?? "";
+      const hour = parts.find((p) => p.type === "hour")?.value ?? "";
+      const minute = parts.find((p) => p.type === "minute")?.value ?? "";
+      const second = parts.find((p) => p.type === "second")?.value ?? "";
+
+      const date = `${year}-${month}-${day} ${hour}:${minute}:${second}`;
       return `${date}: ${row.gohan}`;
     });
 
@@ -53,5 +71,3 @@ export async function handleHistoryCommand(
     }
   }
 }
-
-
