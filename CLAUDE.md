@@ -31,6 +31,7 @@ gohan-bot is a Discord bot (discord.js v14) that asks users about their meals at
 ### Configuration
 
 All configuration via environment variables (see `env.example`):
+
 - `TOKEN`: Discord bot token
 - `MEAL_QUESTION_*`: Cron schedule, timezone, channel/role names, message texts
 - `MYSQL_*`: Database connection

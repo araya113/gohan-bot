@@ -102,3 +102,81 @@ export async function insertGohanHistory(
     console.error("gohan_historys へのINSERTに失敗しました:", error);
   }
 }
+
+/**
+ * tracked_message_ids テーブルへメッセージIDを追加
+ * @param messageId 送信したメッセージID
+ * @param channelId チャンネルID
+ */
+export async function insertTrackedMessageId(
+  messageId: string,
+  channelId: string
+): Promise<void> {
+  if (!connection) {
+    console.warn(
+      "MySQL接続が未初期化のため、tracked_message_ids への保存をスキップします。"
+    );
+    return;
+  }
+
+  try {
+    await connection.execute(
+      "INSERT INTO tracked_message_ids (message_id, channel_id, created_at, expires_at) VALUES (?, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 DAY))",
+      [messageId, channelId]
+    );
+  } catch (error) {
+    console.error("tracked_message_ids へのINSERTに失敗しました:", error);
+  }
+}
+
+/**
+ * tracked_message_ids テーブルにメッセージIDが存在するか確認
+ * @param messageId 確認するメッセージID
+ * @returns メッセージIDが存在する場合はtrue
+ */
+export async function isTrackedMessageId(messageId: string): Promise<boolean> {
+  if (!connection) {
+    console.warn(
+      "MySQL接続が未初期化のため、tracked_message_ids の確認をスキップします。"
+    );
+    return false;
+  }
+
+  try {
+    const [rows] = await queryMySQL<RowDataPacket>(
+      "SELECT 1 FROM tracked_message_ids WHERE message_id = ? AND expires_at > NOW() LIMIT 1",
+      [messageId]
+    );
+    return rows.length > 0;
+  } catch (error) {
+    console.error("tracked_message_ids の確認に失敗しました:", error);
+    return false;
+  }
+}
+
+/**
+ * tracked_message_ids テーブルから期限切れのレコードを削除
+ */
+export async function cleanupExpiredTrackedMessageIds(): Promise<void> {
+  if (!connection) {
+    console.warn(
+      "MySQL接続が未初期化のため、tracked_message_ids のクリーンアップをスキップします。"
+    );
+    return;
+  }
+
+  try {
+    const [result] = await connection.execute(
+      "DELETE FROM tracked_message_ids WHERE expires_at <= NOW()"
+    );
+    const deletedCount =
+      (result as { affectedRows?: number }).affectedRows ?? 0;
+    if (deletedCount > 0) {
+      console.log(
+        `[cleanupExpiredTrackedMessageIds] ${deletedCount}件の期限切れメッセージIDを削除しました`
+      );
+    }
+  } catch (error) {
+    console.error("tracked_message_ids のクリーンアップに失敗しました:", error);
+  }
+}
