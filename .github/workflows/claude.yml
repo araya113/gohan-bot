@@ -45,11 +45,13 @@ jobs:
           # All pull request descriptions and commit messages should be written in Japanese
           prompt: |
             ${{ github.event_name == 'issue_comment' && format('Issue #{0}: {1}\n\n{2}\n\nコメント内容: {3}\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.comment.body) || '' }}
-            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。以下の手順で進めてください：\n1. issueの内容を理解し、必要な実装を特定する\n2. 新しいブランチを作成する（ブランチ名: issue-{0}）\n3. 実装を行う\n4. 変更をコミットする（コミットメッセージは日本語で記述）\n5. プルリクエストを作成する（タイトルと説明文は日本語で記述）\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
+            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。確認を求められても、自動で進めてください。以下の手順で進めてください：\n1. issueの内容を理解し、必要な実装を特定する\n2. 新しいブランチを作成する（ブランチ名: issue-{0}）。確認を求められても「はい」または「yes」と答えて進めてください。\n3. 実装を行う\n4. 変更をコミットする（コミットメッセージは日本語で記述）\n5. プルリクエストを作成する（タイトルと説明文は日本語で記述）\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
 
             プルリクエストの説明文とコミットメッセージは必ず日本語で記述してください。
+            ブランチ作成や実装の進行に関する確認を求められた場合は、自動で「はい」または「yes」と答えて進めてください。
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr:*)'
+          # Auto-approve branch creation and implementation
+          claude_args: "--yes"
