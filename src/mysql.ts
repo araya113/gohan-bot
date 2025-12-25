@@ -102,4 +102,3 @@ export async function insertGohanHistory(
     console.error("gohan_historys へのINSERTに失敗しました:", error);
   }
 }
-

@@ -10,4 +10,3 @@ export async function handleRunaCommand(message: Message): Promise<void> {
     console.error("reply failed:", e);
   }
 }
-

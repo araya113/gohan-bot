@@ -164,7 +164,7 @@ export async function handleMealReply(message: Message): Promise<void> {
 
   // まず、mealQuestionMessageIdsに含まれているかチェック（高速）
   const isInSet = mealQuestionMessageIds.has(refMessageId);
-  
+
   // 含まれていない場合、返信先のメッセージを取得してBotが送信したか確認
   if (!isInSet) {
     try {

@@ -92,7 +92,7 @@ export async function handleNutritionCommand(message: Message): Promise<void> {
     console.error("handleNutritionCommand failed:", e);
     try {
       let errorMessage = "栄養素分析の取得に失敗しました。";
-      
+
       // OpenAI APIのエラーを詳細に処理
       if (e instanceof APIError) {
         if (e.status === 429) {
@@ -104,8 +104,7 @@ export async function handleNutritionCommand(message: Message): Promise<void> {
               "OpenAI APIのレート制限に達しました。しばらく待ってから再度お試しください。";
           }
         } else if (e.status === 401) {
-          errorMessage =
-            "OpenAI APIキーが無効です。管理者に連絡してください。";
+          errorMessage = "OpenAI APIキーが無効です。管理者に連絡してください。";
         } else if (e.status === 500 || e.status === 503) {
           errorMessage =
             "OpenAI APIサーバーでエラーが発生しました。しばらく待ってから再度お試しください。";
@@ -116,11 +115,10 @@ export async function handleNutritionCommand(message: Message): Promise<void> {
         // その他のエラー
         errorMessage = `エラーが発生しました: ${e.message}`;
       }
-      
+
       await message.reply(errorMessage);
     } catch {
       // ignore reply error
     }
   }
 }
-
