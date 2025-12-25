@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 import type { Message } from "discord.js";
 import "dotenv/config";
 import { getToken, loadMealQuestionConfig, loadMySQLConfig } from "./config.js";
-import { initializeMySQL } from "./mysql.js";
+import { initializeMySQL, cleanupExpiredTrackedMessageIds } from "./mysql.js";
 import { handleRunaCommand } from "./commands/runa.js";
 import { handleHistoryCommand } from "./commands/history.js";
 import { handleNutritionCommand } from "./commands/nutrition.js";
@@ -10,6 +10,7 @@ import {
   setupMealQuestionSchedule,
   handleMealReply,
 } from "./scheduled/meal-question.js";
+import cron from "node-cron";
 
 const token = getToken();
 if (!token) {
@@ -45,6 +46,16 @@ const client = new Client({
 client.once("ready", () => {
   console.log(`Logged in as ${client.user?.tag ?? "unknown"}`);
   setupMealQuestionSchedule(client, mealQuestionConfig);
+
+  // 期限切れのメッセージIDを毎日午前3時に削除
+  cron.schedule(
+    "0 3 * * *",
+    () => {
+      void cleanupExpiredTrackedMessageIds();
+    },
+    { timezone: mealQuestionConfig.timezone ?? "Asia/Tokyo" }
+  );
+  console.log("期限切れメッセージIDのクリーンアップスケジュールを設定しました");
 });
 
 client.on("messageCreate", async (message: Message) => {
