@@ -41,6 +41,9 @@ jobs:
           additional_permissions: |
             actions: read
 
+          # Enable full output for debugging
+          show_full_output: true
+
           # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
           # Claude will automatically create a pull request when implementing changes from issues
           # All pull request descriptions and commit messages should be written in Japanese
@@ -61,5 +64,5 @@ jobs:
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          # Auto-approve branch creation and implementation
-          claude_args: "--yes"
+          # Note: --yes option may not be supported, relying on prompt instructions instead
+          # claude_args: "--yes"
