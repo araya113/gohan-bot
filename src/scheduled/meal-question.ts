@@ -9,7 +9,11 @@ import type { Client } from "discord.js";
 import cron from "node-cron";
 import type { MealQuestionConfig } from "../config.js";
 import { isSnowflakeId } from "../config.js";
-import { insertGohanHistory } from "../mysql.js";
+import {
+  insertGohanHistory,
+  insertTrackedMessageId,
+  isTrackedMessageId,
+} from "../mysql.js";
 
 // Botが送信した「ご飯質問メッセージ」のIDを保持する
 const mealQuestionMessageIds = new Set<string>();
@@ -133,10 +137,12 @@ async function sendMealQuestion(
 
   try {
     const sent = await channel.send(text);
-    // 送信したメッセージIDを記録（必要に応じて件数を制限）
+    // 送信したメッセージIDをDBに保存
+    await insertTrackedMessageId(sent.id, channel.id);
+    // メモリ上のキャッシュにも追加（高速化のため）
     mealQuestionMessageIds.add(sent.id);
     console.log(
-      `[sendMealQuestion] ご飯質問メッセージを送信しました: messageId=${sent.id}, mealQuestionMessageIds.size=${mealQuestionMessageIds.size}`
+      `[sendMealQuestion] ご飯質問メッセージを送信しました: messageId=${sent.id}, channelId=${channel.id}`
     );
     if (mealQuestionMessageIds.size > 100) {
       // メモリが増えすぎないよう、ざっくりリセット
@@ -159,32 +165,24 @@ export async function handleMealReply(message: Message): Promise<void> {
   }
 
   console.log(
-    `[handleMealReply] 返信メッセージを検知: refMessageId=${refMessageId}, mealQuestionMessageIds.size=${mealQuestionMessageIds.size}`
+    `[handleMealReply] 返信メッセージを検知: refMessageId=${refMessageId}`
   );
 
-  // まず、mealQuestionMessageIdsに含まれているかチェック（高速）
-  const isInSet = mealQuestionMessageIds.has(refMessageId);
+  // まず、mealQuestionMessageIdsに含まれているかチェック（メモリキャッシュによる高速化）
+  let isTracked = mealQuestionMessageIds.has(refMessageId);
 
-  // 含まれていない場合、返信先のメッセージを取得してBotが送信したか確認
-  if (!isInSet) {
-    try {
-      const referencedMessage = await message.fetchReference();
-      // 返信先のメッセージがBotによって送信されたものか確認
-      if (!referencedMessage.author?.bot) {
-        console.log(
-          `[handleMealReply] 対象外の返信メッセージ: refMessageId=${refMessageId} はBotが送信したメッセージではありません`
-        );
-        return;
-      }
-      // Botが送信したメッセージの場合、mealQuestionMessageIdsに追加（次回以降の高速化のため）
+  // メモリキャッシュにない場合、DBから確認
+  if (!isTracked) {
+    isTracked = await isTrackedMessageId(refMessageId);
+    if (isTracked) {
+      // DBに存在した場合、次回以降の高速化のためメモリキャッシュに追加
       mealQuestionMessageIds.add(refMessageId);
       console.log(
-        `[handleMealReply] 返信先メッセージを確認: refMessageId=${refMessageId} はBotが送信したメッセージです（mealQuestionMessageIdsに追加しました）`
+        `[handleMealReply] DBから確認: refMessageId=${refMessageId} は追跡対象のメッセージです（メモリキャッシュに追加しました）`
       );
-    } catch (error) {
-      // メッセージの取得に失敗した場合（削除されているなど）
+    } else {
       console.log(
-        `[handleMealReply] 返信先メッセージの取得に失敗: refMessageId=${refMessageId}, error=${error instanceof Error ? error.message : String(error)}`
+        `[handleMealReply] 対象外の返信メッセージ: refMessageId=${refMessageId} は追跡対象のメッセージではありません`
       );
       return;
     }
