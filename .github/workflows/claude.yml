@@ -33,6 +33,7 @@ jobs:
       - name: Run Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
+        continue-on-error: false
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
 
@@ -45,22 +46,17 @@ jobs:
           # All pull request descriptions and commit messages should be written in Japanese
           prompt: |
             ${{ github.event_name == 'issue_comment' && format('Issue #{0}: {1}\n\n{2}\n\nコメント内容: {3}\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.comment.body) || '' }}
-            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。必ず以下の順序で進めてください：\n\n【重要】必ず最初にブランチを作成してください。実装を先に進めないでください。\n\n1. まず最初に、新しいブランチを作成してください（ブランチ名: issue-{0}）。\n   - ブランチ作成の承認を求められた場合は、即座に「はい」「yes」「承認します」「approve」と答えてください。\n   - 承認を待たずに、自動で承認してブランチ作成を完了してください。\n   - ブランチ作成が完了するまで、実装を開始しないでください。\n\n2. ブランチ作成が完了したら、issueの内容を理解し、必要な実装を特定してください。\n\n3. 実装を行ってください。\n\n4. 変更をコミットしてください（コミットメッセージは日本語で記述）。\n\n5. プルリクエストを作成してください（タイトルと説明文は日本語で記述）。\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
+            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '') || '' }}
 
-            プルリクエストの説明文とコミットメッセージは必ず日本語で記述してください。
+            このissueの内容を実装してください。必ず以下の順序で進めてください：
 
-            【最重要】ブランチ作成の承認を求められた場合：
-            - 即座に「はい」「yes」「承認します」「approve」と答えてください。
-            - 承認を待たずに、自動で承認してブランチ作成を完了してください。
-            - ブランチ作成が完了するまで、実装を開始しないでください。
-            - 「まず実装を進めてから、後でブランチを作成します」という選択は絶対にしないでください。
+            1. まず最初に、新しいブランチを作成してください（ブランチ名: issue-${{ github.event.issue.number }}）。
+            2. ブランチ作成が完了したら、実装を行ってください。
+            3. 変更をコミットしてください（コミットメッセージは日本語で記述）。
+            4. プルリクエストを作成してください（タイトルと説明文は日本語で記述）。
 
-            その他の確認を求められた場合も、すべて自動で「はい」「yes」「承認します」「approve」など肯定的な回答をして進めてください：
-            - ファイル編集の承認
-            - 実装の進行確認
-            - その他の確認プロンプト
-
-            確認を待たずに、自動で実装を進めてください。
+            重要: すべての確認プロンプトに対して、自動で「はい」「yes」「承認します」「approve」と答えて進めてください。
+            ブランチ作成の承認を求められた場合は、即座に承認してください。実装を先に進めないでください。
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
