@@ -162,12 +162,32 @@ export async function handleMealReply(message: Message): Promise<void> {
     `[handleMealReply] 返信メッセージを検知: refMessageId=${refMessageId}, mealQuestionMessageIds.size=${mealQuestionMessageIds.size}`
   );
 
-  // Botが送信したご飯質問への返信かどうかを判定
-  if (!mealQuestionMessageIds.has(refMessageId)) {
-    console.log(
-      `[handleMealReply] 対象外の返信メッセージ: refMessageId=${refMessageId} は mealQuestionMessageIds に含まれていません`
-    );
-    return;
+  // まず、mealQuestionMessageIdsに含まれているかチェック（高速）
+  const isInSet = mealQuestionMessageIds.has(refMessageId);
+  
+  // 含まれていない場合、返信先のメッセージを取得してBotが送信したか確認
+  if (!isInSet) {
+    try {
+      const referencedMessage = await message.fetchReference();
+      // 返信先のメッセージがBotによって送信されたものか確認
+      if (!referencedMessage.author?.bot) {
+        console.log(
+          `[handleMealReply] 対象外の返信メッセージ: refMessageId=${refMessageId} はBotが送信したメッセージではありません`
+        );
+        return;
+      }
+      // Botが送信したメッセージの場合、mealQuestionMessageIdsに追加（次回以降の高速化のため）
+      mealQuestionMessageIds.add(refMessageId);
+      console.log(
+        `[handleMealReply] 返信先メッセージを確認: refMessageId=${refMessageId} はBotが送信したメッセージです（mealQuestionMessageIdsに追加しました）`
+      );
+    } catch (error) {
+      // メッセージの取得に失敗した場合（削除されているなど）
+      console.log(
+        `[handleMealReply] 返信先メッセージの取得に失敗: refMessageId=${refMessageId}, error=${error instanceof Error ? error.message : String(error)}`
+      );
+      return;
+    }
   }
 
   const gohan = message.content.trim();
