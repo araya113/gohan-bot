@@ -6,7 +6,7 @@ on:
   pull_request_review_comment:
     types: [created]
   issues:
-    types: [opened, assigned]
+    types: [opened]
   pull_request_review:
     types: [submitted]
 
@@ -16,7 +16,7 @@ jobs:
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
-      (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
+      (github.event_name == 'issues' && github.event.action == 'opened' && (startsWith(github.event.issue.body, '@claude') || startsWith(github.event.issue.title, '@claude') || contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     permissions:
       contents: write # Required for creating branches and commits
@@ -44,8 +44,10 @@ jobs:
           # Claude will automatically create a pull request when implementing changes from issues
           # All pull request descriptions and commit messages should be written in Japanese
           prompt: |
+            ${{ github.event_name == 'issue_comment' && format('Issue #{0}: {1}\n\n{2}\n\nコメント内容: {3}\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.comment.body) || '' }}
+            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。以下の手順で進めてください：\n1. issueの内容を理解し、必要な実装を特定する\n2. 新しいブランチを作成する（ブランチ名: issue-{0}）\n3. 実装を行う\n4. 変更をコミットする（コミットメッセージは日本語で記述）\n5. プルリクエストを作成する（タイトルと説明文は日本語で記述）\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
+
             プルリクエストの説明文とコミットメッセージは必ず日本語で記述してください。
-            実装内容の説明、変更点の詳細、テスト方法などを日本語で記載してください。
 
           # Optional: Add claude_args to customize behavior and configuration
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
