@@ -45,12 +45,17 @@ jobs:
           # All pull request descriptions and commit messages should be written in Japanese
           prompt: |
             ${{ github.event_name == 'issue_comment' && format('Issue #{0}: {1}\n\n{2}\n\nコメント内容: {3}\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.comment.body) || '' }}
-            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。確認を求められても、自動で進めてください。以下の手順で進めてください：\n1. issueの内容を理解し、必要な実装を特定する\n2. 新しいブランチを作成する（ブランチ名: issue-{0}）。確認を求められても「はい」または「yes」と答えて進めてください。\n3. 実装を行う\n4. 変更をコミットする（コミットメッセージは日本語で記述）\n5. プルリクエストを作成する（タイトルと説明文は日本語で記述）\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
+            ${{ github.event_name == 'issues' && format('Issue #{0}: {1}\n\nIssue本文:\n{2}\n\nこのissueの内容を実装してください。必ず以下の順序で進めてください：\n\n【重要】必ず最初にブランチを作成してください。実装を先に進めないでください。\n\n1. まず最初に、新しいブランチを作成してください（ブランチ名: issue-{0}）。\n   - ブランチ作成の承認を求められた場合は、即座に「はい」「yes」「承認します」「approve」と答えてください。\n   - 承認を待たずに、自動で承認してブランチ作成を完了してください。\n   - ブランチ作成が完了するまで、実装を開始しないでください。\n\n2. ブランチ作成が完了したら、issueの内容を理解し、必要な実装を特定してください。\n\n3. 実装を行ってください。\n\n4. 変更をコミットしてください（コミットメッセージは日本語で記述）。\n\n5. プルリクエストを作成してください（タイトルと説明文は日本語で記述）。\n\nプルリクエストの説明文には以下を含めてください：\n- 実装内容の概要\n- 変更点の詳細\n- テスト方法（該当する場合）\n- 関連するissue番号（#{0}）\n\n', github.event.issue.number, github.event.issue.title, github.event.issue.body || '', github.event.issue.number, github.event.issue.number) || '' }}
 
             プルリクエストの説明文とコミットメッセージは必ず日本語で記述してください。
 
-            重要: 以下の確認を求められた場合は、すべて自動で「はい」「yes」「承認します」「approve」など肯定的な回答をして進めてください：
-            - ブランチ作成の確認
+            【最重要】ブランチ作成の承認を求められた場合：
+            - 即座に「はい」「yes」「承認します」「approve」と答えてください。
+            - 承認を待たずに、自動で承認してブランチ作成を完了してください。
+            - ブランチ作成が完了するまで、実装を開始しないでください。
+            - 「まず実装を進めてから、後でブランチを作成します」という選択は絶対にしないでください。
+
+            その他の確認を求められた場合も、すべて自動で「はい」「yes」「承認します」「approve」など肯定的な回答をして進めてください：
             - ファイル編集の承認
             - 実装の進行確認
             - その他の確認プロンプト
