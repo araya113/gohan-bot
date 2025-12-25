@@ -37,7 +37,7 @@ jobs:
             git checkout -b "$BRANCH_NAME"
           fi
 
-      - name: Run Claude Code
+      - name: Generate changes with Claude Code
         id: claude
         uses: anthropics/claude-code-action@v1
         continue-on-error: false
@@ -52,27 +52,109 @@ jobs:
             Issue本文:
             ${{ github.event.issue.body || '' }}
             
-            このissueの内容を実装してください。必ず以下の順序で進めてください：
+            このissueの内容を実装するための変更内容を生成してください。以下の形式で出力してください：
             
-            1. issueの内容を理解し、必要な実装を特定してください。
-            2. 実装を行ってください。
-            3. 変更をコミットしてください（コミットメッセージは日本語で記述）。
+            ## 出力形式
             
-            重要: すべての確認プロンプトに対して、自動で「はい」「yes」「承認します」「approve」と答えて進めてください。
-            ブランチは既に作成済みです。プルリクエストは後で自動で作成されます。
+            1. **変更内容（diff/パッチ形式）**: 
+               - 統一diff形式（unified diff format）で変更内容を出力してください
+               - ファイルパスと変更内容を含めてください
+               - 例: `--- a/path/to/file\n+++ b/path/to/file\n@@ -1,3 +1,3 @@\n...`
+            
+            2. **PR本文**: 
+               - Markdown形式でPRの説明文を生成してください
+               - 実装内容の概要、変更点の詳細、テスト方法などを含めてください
+               - 日本語で記述してください
+            
+            3. **実装手順の提案**: 
+               - 実装の手順や注意点を記載してください
+            
+            **重要**: 
+            - ファイルを直接編集せず、変更内容をテキストとして出力してください
+            - 出力は以下の形式で行ってください：
+            
+            ```
+            ===DIFF_START===
+            [ここにdiff/パッチ形式の変更内容]
+            ===DIFF_END===
+            
+            ===PR_BODY_START===
+            [ここにPR本文（Markdown形式）]
+            ===PR_BODY_END===
+            
+            ===IMPLEMENTATION_STEPS_START===
+            [ここに実装手順の提案]
+            ===IMPLEMENTATION_STEPS_END===
+            ```
 
-      - name: Check for changes
-        id: check-changes
+      - name: Extract diff and PR body
+        id: extract
         run: |
+          OUTPUT="${{ steps.claude.outputs.output }}"
+          
+          # Extract diff
+          DIFF=$(echo "$OUTPUT" | sed -n '/===DIFF_START===/,/===DIFF_END===/p' | sed '1d;$d')
+          echo "diff<<EOF" >> $GITHUB_OUTPUT
+          echo "$DIFF" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Extract PR body
+          PR_BODY=$(echo "$OUTPUT" | sed -n '/===PR_BODY_START===/,/===PR_BODY_END===/p' | sed '1d;$d')
+          echo "pr_body<<EOF" >> $GITHUB_OUTPUT
+          echo "$PR_BODY" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          
+          # Extract implementation steps
+          STEPS=$(echo "$OUTPUT" | sed -n '/===IMPLEMENTATION_STEPS_START===/,/===IMPLEMENTATION_STEPS_END===/p' | sed '1d;$d')
+          echo "steps<<EOF" >> $GITHUB_OUTPUT
+          echo "$STEPS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Apply patch
+        run: |
+          DIFF="${{ steps.extract.outputs.diff }}"
+          
+          if [ -z "$DIFF" ]; then
+            echo "No diff found, skipping patch application"
+            exit 0
+          fi
+          
+          # Save diff to file
+          echo "$DIFF" > /tmp/changes.patch
+          
+          # Try to apply patch
+          if git apply --check /tmp/changes.patch 2>/dev/null; then
+            echo "Patch is valid, applying..."
+            git apply /tmp/changes.patch
+          else
+            echo "Standard patch format failed, trying alternative methods..."
+            # Try with different patch options
+            git apply --3way /tmp/changes.patch || {
+              echo "Patch application failed. Manual review may be needed."
+              echo "Diff content:"
+              cat /tmp/changes.patch
+              exit 1
+            }
+          fi
+
+      - name: Commit and push changes
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
           if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -m "実装: Issue #${{ github.event.issue.number }} - ${{ github.event.issue.title }}"
+            git push origin issue-${{ github.event.issue.number }}
             echo "has_changes=true" >> $GITHUB_OUTPUT
           else
             echo "has_changes=false" >> $GITHUB_OUTPUT
-            echo "No changes detected, skipping PR creation"
+            echo "No changes to commit"
           fi
 
       - name: Create Pull Request
-        if: steps.check-changes.outputs.has_changes == 'true'
+        if: steps.commit.outputs.has_changes == 'true'
         uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -80,19 +162,20 @@ jobs:
           base: main
           title: "Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}"
           body: |
-            ## 実装内容
+            ${{ steps.extract.outputs.pr_body }}
             
-            このPRはIssue #${{ github.event.issue.number }}の実装です。
+            ---
             
-            ### 関連Issue
-            - #${{ github.event.issue.number }}
+            ## 実装手順
             
-            ### 変更点
-            - AIによる自動実装
+            ${{ steps.extract.outputs.steps }}
             
             ---
             
             **注意**: このPRは自動生成されました。CIが通ったらレビューをお願いします。
+            
+            ### 関連Issue
+            - #${{ github.event.issue.number }}
           labels: |
             auto-generated
           draft: false
