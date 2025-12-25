@@ -135,6 +135,9 @@ async function sendMealQuestion(
     const sent = await channel.send(text);
     // 送信したメッセージIDを記録（必要に応じて件数を制限）
     mealQuestionMessageIds.add(sent.id);
+    console.log(
+      `[sendMealQuestion] ご飯質問メッセージを送信しました: messageId=${sent.id}, mealQuestionMessageIds.size=${mealQuestionMessageIds.size}`
+    );
     if (mealQuestionMessageIds.size > 100) {
       // メモリが増えすぎないよう、ざっくりリセット
       mealQuestionMessageIds.clear();
@@ -151,16 +154,40 @@ async function sendMealQuestion(
 export async function handleMealReply(message: Message): Promise<void> {
   // 返信でなければ対象外
   const refMessageId = message.reference?.messageId;
-  if (!refMessageId) return;
+  if (!refMessageId) {
+    return;
+  }
+
+  console.log(
+    `[handleMealReply] 返信メッセージを検知: refMessageId=${refMessageId}, mealQuestionMessageIds.size=${mealQuestionMessageIds.size}`
+  );
 
   // Botが送信したご飯質問への返信かどうかを判定
-  if (!mealQuestionMessageIds.has(refMessageId)) return;
+  if (!mealQuestionMessageIds.has(refMessageId)) {
+    console.log(
+      `[handleMealReply] 対象外の返信メッセージ: refMessageId=${refMessageId} は mealQuestionMessageIds に含まれていません`
+    );
+    return;
+  }
 
   const gohan = message.content.trim();
-  if (!gohan) return;
+  if (!gohan) {
+    console.log("[handleMealReply] メッセージ内容が空です");
+    return;
+  }
+
+  const userId = message.author?.id;
+  if (!userId) {
+    console.error("[handleMealReply] ユーザーIDが取得できませんでした");
+    return;
+  }
 
   try {
-    await insertGohanHistory(message.author.id, gohan);
+    console.log(
+      `[handleMealReply] DBに保存します: userId=${userId}, gohan=${gohan}`
+    );
+    await insertGohanHistory(userId, gohan);
+    console.log(`[handleMealReply] DBへの保存が完了しました`);
   } catch (error) {
     // insertGohanHistory 内でログ出力しているが、念のためここでも補足
     console.error("ご飯返信の保存中にエラーが発生しました:", error);
