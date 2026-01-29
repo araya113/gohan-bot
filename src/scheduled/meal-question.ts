@@ -13,7 +13,7 @@ import {
   insertGohanHistory,
   insertTrackedMessageId,
   isTrackedMessageId,
-} from "../mysql.js";
+} from "../prisma.js";
 
 // Botが送信した「ご飯質問メッセージ」のIDを保持する
 const mealQuestionMessageIds = new Set<string>();

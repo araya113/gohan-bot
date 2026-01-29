@@ -2,7 +2,7 @@ import { Client, GatewayIntentBits, Partials } from "discord.js";
 import type { Message } from "discord.js";
 import "dotenv/config";
 import { getToken, loadMealQuestionConfig, loadMySQLConfig } from "./config.js";
-import { initializeMySQL, cleanupExpiredTrackedMessageIds } from "./mysql.js";
+import { initializePrisma, cleanupExpiredTrackedMessageIds } from "./prisma.js";
 import { handleRunaCommand } from "./commands/runa.js";
 import { handleHistoryCommand } from "./commands/history.js";
 import { handleNutritionCommand } from "./commands/nutrition.js";
@@ -20,15 +20,15 @@ if (!token) {
 
 const mealQuestionConfig = loadMealQuestionConfig();
 
-// MySQL初期化（設定がある場合のみ）
+// Prisma初期化（設定がある場合のみ）
 try {
   const mysqlConfig = loadMySQLConfig();
   if (mysqlConfig) {
-    await initializeMySQL(mysqlConfig);
+    initializePrisma(mysqlConfig);
   }
 } catch (error) {
   console.warn(
-    "MySQL初期化をスキップしました:",
+    "Prisma初期化をスキップしました:",
     error instanceof Error ? error.message : String(error)
   );
 }
