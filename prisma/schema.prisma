@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model GohanHistory {
+  id       BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  userId   String   @map("user_id") @db.VarChar(32)
+  gohan    String   @db.Text
+  createAt DateTime @default(now()) @map("create_at")
+
+  @@map("gohan_historys")
+}
+
+model TrackedMessageId {
+  messageId String   @id @map("message_id") @db.VarChar(32)
+  channelId String   @map("channel_id") @db.VarChar(32)
+  createdAt DateTime @default(now()) @map("created_at")
+  expiresAt DateTime @map("expires_at")
+
+  @@map("tracked_message_ids")
+}
