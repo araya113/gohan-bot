@@ -1,15 +1,9 @@
 import type { Message } from "discord.js";
-import type { RowDataPacket } from "mysql2/promise";
-import { queryMySQL } from "../mysql.js";
-
-interface GohanHistoryRow extends RowDataPacket {
-  gohan: string;
-  create_at: Date | string;
-}
+import { getGohanHistory } from "../prisma.js";
 
 /**
  * !history コマンドの処理
- * 実行したユーザーのご飯履歴を gOHAN_historys から取得して表示する
+ * 実行したユーザーのご飯履歴を gohan_historys から取得して表示する
  */
 export async function handleHistoryCommand(message: Message): Promise<void> {
   try {
@@ -21,11 +15,7 @@ export async function handleHistoryCommand(message: Message): Promise<void> {
 
     const userId = message.author.id;
 
-    // gohan_historys の user_id で絞り込み
-    const [rows] = await queryMySQL<GohanHistoryRow>(
-      "SELECT gohan, create_at FROM gohan_historys WHERE user_id = ? ORDER BY create_at DESC LIMIT 10",
-      [userId]
-    );
+    const rows = await getGohanHistory(userId, 10);
 
     if (rows.length === 0) {
       await message.reply("あなたのご飯履歴はまだありません。");
@@ -34,9 +24,9 @@ export async function handleHistoryCommand(message: Message): Promise<void> {
 
     const lines = rows.map((row) => {
       const dateObj =
-        row.create_at instanceof Date
-          ? row.create_at
-          : new Date(String(row.create_at));
+        row.createAt instanceof Date
+          ? row.createAt
+          : new Date(String(row.createAt));
       // 日本時間（JST）に変換して表示
       const parts = new Intl.DateTimeFormat("en-US", {
         timeZone: "Asia/Tokyo",

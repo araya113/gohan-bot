@@ -1,13 +1,7 @@
 import type { Message } from "discord.js";
-import type { RowDataPacket } from "mysql2/promise";
 import { OpenAI, APIError } from "openai";
-import { queryMySQL } from "../mysql.js";
+import { getGohanHistoryForNutrition } from "../prisma.js";
 import { getOpenAIApiKey } from "../config.js";
-
-interface GohanHistoryRow extends RowDataPacket {
-  gohan: string;
-  create_at: Date | string;
-}
 
 /**
  * !nutrition コマンドの処理
@@ -24,10 +18,7 @@ export async function handleNutritionCommand(message: Message): Promise<void> {
     const userId = message.author.id;
 
     // 直近7日分のご飯履歴を取得（API呼び出し前にチェックしてクレジット節約）
-    const [rows] = await queryMySQL<GohanHistoryRow>(
-      "SELECT gohan, create_at FROM gohan_historys WHERE user_id = ? AND create_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) ORDER BY create_at DESC",
-      [userId]
-    );
+    const rows = await getGohanHistoryForNutrition(userId);
 
     if (rows.length === 0) {
       await message.reply(
@@ -49,9 +40,9 @@ export async function handleNutritionCommand(message: Message): Promise<void> {
     const historyText = rows
       .map((row) => {
         const dateObj =
-          row.create_at instanceof Date
-            ? row.create_at
-            : new Date(String(row.create_at));
+          row.createAt instanceof Date
+            ? row.createAt
+            : new Date(String(row.createAt));
         const date = dateObj.toLocaleDateString("ja-JP", {
           month: "numeric",
           day: "numeric",
